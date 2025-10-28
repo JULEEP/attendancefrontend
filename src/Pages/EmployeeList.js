@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { FaFileCsv, FaUpload, FaEye, FaTrash, FaEdit } from "react-icons/fa";
-import { CSVLink } from "react-csv";
-import * as XLSX from "xlsx";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useEffect, useState } from "react";
+import { CSVLink } from "react-csv";
+import { FaEdit, FaEye, FaFileCsv, FaTrash, FaUpload } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
@@ -16,13 +16,14 @@ const EmployeeList = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/employees/get-employees");
+        const response = await axios.get(
+          "https://attendancebackend-5cgn.onrender.com/api/employees/get-employees"
+        );
         setEmployees(response.data);
       } catch (error) {
         console.error("❌ Error fetching employees:", error);
       }
     };
-
     fetchEmployees();
   }, []);
 
@@ -43,21 +44,12 @@ const EmployeeList = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
 
-  const handleView = (employee) => {
-    setSelectedEmployee(employee);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedEmployee(null);
-  };
-
-  const handleEdit = (id) => {
-    navigate(`/employee/edit/${id}`); // Update route as needed
-  };
+  const handleView = (employee) => setSelectedEmployee(employee);
+  const handleCloseModal = () => setSelectedEmployee(null);
+  const handleEdit = (id) => navigate(`/employee/edit/${id}`);
 
   const handleDelete = async (id) => {
     try {
-      // await axios.delete(`http://localhost:5000/api/employees/delete/${id}`);
       setEmployees(employees.filter((emp) => emp._id !== id));
       alert("✅ Employee deleted successfully!");
     } catch (error) {
@@ -93,111 +85,138 @@ const EmployeeList = () => {
   ];
 
   return (
-    <div className="p-4 bg-white rounded shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Employee List</h2>
+    <div className="p-4 bg-white rounded-lg shadow-md max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+        <h2 className="text-xl font-semibold text-center sm:text-left">
+          Employee List
+        </h2>
       </div>
 
       {/* Controls */}
-      <div className="mb-4 flex gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <input
           type="text"
-          className="px-3 py-2 border rounded text-sm"
+          className="px-3 py-2 text-sm border rounded w-full sm:w-64"
           placeholder="Search by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <CSVLink
-          data={filteredEmployees}
-          headers={csvHeaders}
-          filename="employees.csv"
-          className="px-4 py-2 bg-green-500 text-white rounded text-sm flex items-center gap-2"
-        >
-          <FaFileCsv /> CSV
-        </CSVLink>
+        <div className="flex flex-wrap gap-2">
+          <CSVLink
+            data={filteredEmployees}
+            headers={csvHeaders}
+            filename="employees.csv"
+            className="flex items-center justify-center gap-2 px-4 py-2 text-sm text-white bg-green-500 rounded hover:bg-green-600 transition"
+          >
+            <FaFileCsv /> CSV
+          </CSVLink>
 
-        <label
-          htmlFor="file-upload"
-          className="px-4 py-2 bg-purple-600 text-white rounded text-sm flex items-center gap-2 cursor-pointer"
-        >
-          <FaUpload /> Bulk Import
-          <input
-            id="file-upload"
-            type="file"
-            accept=".xlsx, .xls"
-            onChange={handleBulkImport}
-            className="hidden"
-          />
-        </label>
+          <label
+            htmlFor="file-upload"
+            className="flex items-center justify-center gap-2 px-4 py-2 text-sm text-white bg-purple-600 rounded cursor-pointer hover:bg-purple-700 transition"
+          >
+            <FaUpload /> Import
+            <input
+              id="file-upload"
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleBulkImport}
+              className="hidden"
+            />
+          </label>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-y-auto max-h-[400px]">
-        <table className="w-full border rounded text-sm">
-          <thead className="bg-gray-200">
+      {/* Table Container */}
+      <div className="overflow-x-auto border rounded-lg">
+        <table className="w-full text-sm min-w-[600px]">
+          <thead className="bg-gray-200 text-gray-700">
             <tr>
               {csvHeaders.map((header, idx) => (
-                <th key={idx} className="p-2 border text-left">{header.label}</th>
+                <th key={idx} className="p-2 text-left border">
+                  {header.label}
+                </th>
               ))}
-              <th className="p-2 border text-left">Actions</th>
+              <th className="p-2 text-left border">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentEmployees.map((emp) => (
-              <tr key={emp._id} className="hover:bg-gray-100 border-b">
-                <td className="p-2 border">{emp.name}</td>
-                <td className="p-2 border">{emp.email}</td>
-                <td className="p-2 border">{emp.phone}</td>
-                <td className="p-2 border">{emp.department}</td>
-                <td className="p-2 border capitalize">{emp.role}</td>
-                <td className="p-2 border">
-                  {emp.joinDate ? new Date(emp.joinDate).toLocaleDateString() : "-"}
-                </td>
-                <td className="p-2 border">{emp.employeeId}</td>
-                <td className="p-2 border flex gap-2 justify-center">
-                  <button
-                    onClick={() => handleView(emp)}
-                    className="text-blue-500 hover:text-blue-700"
-                    title="View"
-                  >
-                    <FaEye />
-                  </button>
-                  <button
-                    onClick={() => handleEdit(emp._id)}
-                    className="text-yellow-500 hover:text-yellow-700"
-                    title="Edit"
-                  >
-                    <FaEdit />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(emp._id)}
-                    className="text-red-500 hover:text-red-700"
-                    title="Delete"
-                  >
-                    <FaTrash />
-                  </button>
+            {currentEmployees.length > 0 ? (
+              currentEmployees.map((emp) => (
+                <tr
+                  key={emp._id}
+                  className="border-b hover:bg-gray-50 transition"
+                >
+                  <td className="p-2 border">{emp.name}</td>
+                  <td className="p-2 border">{emp.email}</td>
+                  <td className="p-2 border">{emp.phone}</td>
+                  <td className="p-2 border">{emp.department}</td>
+                  <td className="p-2 capitalize border">{emp.role}</td>
+                  <td className="p-2 border">
+                    {emp.joinDate
+                      ? new Date(emp.joinDate).toLocaleDateString()
+                      : "-"}
+                  </td>
+                  <td className="p-2 border">{emp.employeeId}</td>
+                  <td className="p-2 border text-center">
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => handleView(emp)}
+                        className="text-blue-500 hover:text-blue-700"
+                        title="View"
+                      >
+                        <FaEye />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(emp._id)}
+                        className="text-yellow-500 hover:text-yellow-700"
+                        title="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(emp._id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={csvHeaders.length + 1}
+                  className="p-4 text-center text-gray-500"
+                >
+                  No employees found.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-3">
         <button
           onClick={goToPrevPage}
           disabled={currentPage === 1}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+          className="px-4 py-2 text-gray-700 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           Previous
         </button>
-        <span className="font-semibold">Page {currentPage} of {totalPages}</span>
+        <span className="font-semibold text-center">
+          Page {currentPage} of {totalPages}
+        </span>
         <button
           onClick={goToNextPage}
           disabled={currentPage === totalPages}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+          className="px-4 py-2 text-gray-700 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           Next
         </button>
@@ -205,22 +224,41 @@ const EmployeeList = () => {
 
       {/* View Modal */}
       {selectedEmployee && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-md p-6 rounded shadow-lg relative">
-            <h3 className="text-lg font-bold mb-4">Employee Details</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3">
+          <div className="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg overflow-y-auto max-h-[90vh]">
+            <h3 className="mb-4 text-lg font-bold text-center sm:text-left">
+              Employee Details
+            </h3>
             <ul className="space-y-2 text-sm">
-              <li><strong>Name:</strong> {selectedEmployee.name}</li>
-              <li><strong>Email:</strong> {selectedEmployee.email}</li>
-              <li><strong>Phone:</strong> {selectedEmployee.phone}</li>
-              <li><strong>Department:</strong> {selectedEmployee.department}</li>
-              <li><strong>Role:</strong> {selectedEmployee.role}</li>
-              <li><strong>Join Date:</strong> {new Date(selectedEmployee.joinDate).toLocaleDateString()}</li>
-              <li><strong>Employee ID:</strong> {selectedEmployee.employeeId}</li>
-              <li><strong>Address:</strong> {selectedEmployee.address}</li>
+              <li>
+                <strong>Name:</strong> {selectedEmployee.name}
+              </li>
+              <li>
+                <strong>Email:</strong> {selectedEmployee.email}
+              </li>
+              <li>
+                <strong>Phone:</strong> {selectedEmployee.phone}
+              </li>
+              <li>
+                <strong>Department:</strong> {selectedEmployee.department}
+              </li>
+              <li>
+                <strong>Role:</strong> {selectedEmployee.role}
+              </li>
+              <li>
+                <strong>Join Date:</strong>{" "}
+                {new Date(selectedEmployee.joinDate).toLocaleDateString()}
+              </li>
+              <li>
+                <strong>Employee ID:</strong> {selectedEmployee.employeeId}
+              </li>
+              <li>
+                <strong>Address:</strong> {selectedEmployee.address}
+              </li>
             </ul>
             <button
               onClick={handleCloseModal}
-              className="absolute top-2 right-2 text-gray-600 hover:text-black"
+              className="absolute text-gray-600 top-2 right-3 hover:text-black text-lg"
             >
               ✕
             </button>

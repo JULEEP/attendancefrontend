@@ -31,8 +31,9 @@ const AttendanceList = () => {
     }
   };
 
+  // FIXED: Added safe check for employeeName
   const filtered = records.filter((rec) =>
-    rec.employeeName.toLowerCase().includes(search.toLowerCase())
+    rec.employeeName && rec.employeeName.toLowerCase().includes(search.toLowerCase())
   );
 
   const indexOfLast = currentPage * itemsPerPage;
@@ -99,10 +100,18 @@ const AttendanceList = () => {
     { label: "Longitude", key: "location.longitude" },
   ];
 
+  // FIXED: Added safe transformation for CSV
   const transformForCsv = (rec) => ({
-    ...rec,
-    "location.latitude": rec.location?.latitude,
-    "location.longitude": rec.location?.longitude,
+    employeeId: rec.employeeId || "",
+    employeeName: rec.employeeName || "",
+    date: rec.date || "",
+    checkIn: rec.checkIn || "",
+    checkOut: rec.checkOut || "",
+    status: rec.status || "",
+    distanceFromOffice: rec.distanceFromOffice || "",
+    locationStatus: rec.locationStatus || "",
+    "location.latitude": rec.location?.latitude || "",
+    "location.longitude": rec.location?.longitude || "",
   });
 
   return (
@@ -162,49 +171,69 @@ const AttendanceList = () => {
             </tr>
           </thead>
           <tbody>
-            {currentRecords.map((rec) => (
-              <tr key={rec._id} className="hover:bg-gray-100 border-b">
-                <td className="p-2 border">{rec.employeeId}</td>
-                <td className="p-2 border">{rec.employeeName}</td>
-                <td className="p-2 border">{rec.date}</td>
-                <td className="p-2 border">
-                  {rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString() : "-"}
-                </td>
-                <td className="p-2 border">
-                  {rec.checkOut ? new Date(rec.checkOut).toLocaleTimeString() : "-"}
-                </td>
-                <td className="p-2 border">{rec.status}</td>
-                <td className="p-2 border">{rec.distanceFromOffice ?? "-"}</td>
-                <td className="p-2 border">{rec.locationStatus}</td>
-                <td className="p-2 border">{rec.location?.latitude ?? "-"}</td>
-                <td className="p-2 border">{rec.location?.longitude ?? "-"}</td>
-                <td className="p-2 border flex gap-2 justify-center">
-                  <button
-                    onClick={() => handleView(rec)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="View"
-                  >
-                    <FaEye />
-                  </button>
-                  <button
-                    onClick={() => handleEdit(rec)}
-                    className="text-yellow-600 hover:text-yellow-800"
-                    title="Edit Status"
-                  >
-                    <FaEdit />
-                  </button>
+            {currentRecords.length > 0 ? (
+              currentRecords.map((rec) => (
+                <tr key={rec._id} className="hover:bg-gray-100 border-b">
+                  <td className="p-2 border">{rec.employeeId || "-"}</td>
+                  <td className="p-2 border">{rec.employeeName || "-"}</td>
+                  <td className="p-2 border">{rec.date || "-"}</td>
+                  <td className="p-2 border">
+                    {rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString() : "-"}
+                  </td>
+                  <td className="p-2 border">
+                    {rec.checkOut ? new Date(rec.checkOut).toLocaleTimeString() : "-"}
+                  </td>
+                  <td className="p-2 border">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      rec.status === 'present' ? 'bg-green-100 text-green-800' :
+                      rec.status === 'absent' ? 'bg-red-100 text-red-800' :
+                      rec.status === 'half-day' ? 'bg-yellow-100 text-yellow-800' :
+                      rec.status === 'remote' ? 'bg-blue-100 text-blue-800' :
+                      rec.status === 'leave' ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {rec.status || "Unknown"}
+                    </span>
+                  </td>
+                  <td className="p-2 border">{rec.distanceFromOffice ?? "-"}</td>
+                  <td className="p-2 border">{rec.locationStatus || "-"}</td>
+                  <td className="p-2 border">{rec.location?.latitude ?? "-"}</td>
+                  <td className="p-2 border">{rec.location?.longitude ?? "-"}</td>
+                  <td className="p-2 border flex gap-2 justify-center">
+                    <button
+                      onClick={() => handleView(rec)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="View"
+                    >
+                      <FaEye />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(rec)}
+                      className="text-yellow-600 hover:text-yellow-800"
+                      title="Edit Status"
+                    >
+                      <FaEdit />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="11" className="p-4 border text-center text-gray-500">
+                  No attendance records found
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* Pagination Controls */}
       <div className="flex justify-between items-center mt-4">
         <button
           onClick={goPrev}
           disabled={currentPage === 1}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+          className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Previous
         </button>
@@ -214,7 +243,7 @@ const AttendanceList = () => {
         <button
           onClick={goNext}
           disabled={currentPage === totalPages}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+          className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Next
         </button>
@@ -232,16 +261,16 @@ const AttendanceList = () => {
             </button>
             <h3 className="text-lg font-semibold mb-4">Attendance Detail</h3>
             <ul className="text-sm space-y-2">
-              <li><strong>Employee ID:</strong> {selectedRecord.employeeId}</li>
-              <li><strong>Name:</strong> {selectedRecord.employeeName}</li>
-              <li><strong>Date:</strong> {selectedRecord.date}</li>
-              <li><strong>Check In:</strong> {new Date(selectedRecord.checkIn).toLocaleString()}</li>
+              <li><strong>Employee ID:</strong> {selectedRecord.employeeId || "-"}</li>
+              <li><strong>Name:</strong> {selectedRecord.employeeName || "-"}</li>
+              <li><strong>Date:</strong> {selectedRecord.date || "-"}</li>
+              <li><strong>Check In:</strong> {selectedRecord.checkIn ? new Date(selectedRecord.checkIn).toLocaleString() : "-"}</li>
               <li><strong>Check Out:</strong> {selectedRecord.checkOut ? new Date(selectedRecord.checkOut).toLocaleString() : "-"}</li>
-              <li><strong>Status:</strong> {selectedRecord.status}</li>
-              <li><strong>Distance:</strong> {selectedRecord.distanceFromOffice}</li>
-              <li><strong>Location Status:</strong> {selectedRecord.locationStatus}</li>
-              <li><strong>Latitude:</strong> {selectedRecord.location?.latitude}</li>
-              <li><strong>Longitude:</strong> {selectedRecord.location?.longitude}</li>
+              <li><strong>Status:</strong> {selectedRecord.status || "-"}</li>
+              <li><strong>Distance:</strong> {selectedRecord.distanceFromOffice || "-"}</li>
+              <li><strong>Location Status:</strong> {selectedRecord.locationStatus || "-"}</li>
+              <li><strong>Latitude:</strong> {selectedRecord.location?.latitude || "-"}</li>
+              <li><strong>Longitude:</strong> {selectedRecord.location?.longitude || "-"}</li>
             </ul>
           </div>
         </div>
